@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "15001:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=15002
+      - INFLUXDB_URL=http://influxdb:15003
+      - CASSANDRA_HOST=cassandra
+      - CASSANDRA_PORT=15004
+      - LOG_LEVEL=INFO
+    depends_on:
+      - redis
+      - influxdb
+      - cassandra
+    volumes:
+      - ./data:/app/data
+    networks:
+      - hkex-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "15002:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - hkex-network
+
+  influxdb:
+    image: influxdb:2.7-alpine
+    ports:
+      - "15003:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=adminpassword
+      - DOCKER_INFLUXDB_INIT_ORG=hkex
+      - DOCKER_INFLUXDB_INIT_BUCKET=settlement_data
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=admin-token
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    networks:
+      - hkex-network
+
+  cassandra:
+    image: cassandra:4.1
+    ports:
+      - "15004:9042"
+    environment:
+      - CASSANDRA_CLUSTER_NAME=hkex_cluster
+      - CASSANDRA_DC=hkex_dc
+      - CASSANDRA_RACK=hkex_rack
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    networks:
+      - hkex-network
+
+volumes:
+  redis_data:
+  influxdb_data:
+  cassandra_data:
+
+networks:
+  hkex-network:
+    driver: bridge
